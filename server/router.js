@@ -37,6 +37,5 @@ const router = (app) => {
   app.post('/increaseByName', controllers.increaseByName);
 
 };
-
 // export the router function
 module.exports = router;
