@@ -130,20 +130,13 @@ const setDogName = async (req, res) => {
 const searchName = async (req, res) => {
 
     if (req.query.name) {
-        try {
-
-            const doc = await Cat.findOne({ name: req.query.name }).exec();
+        const doc = await Cat.findOne({ name: req.query.name }).exec();
     
-            if (!doc) {
-                return res.json({ error: 'No cats found' });
-            }
-    
-            return res.json({ name: doc.name, beds: doc.bedsOwned });
-        } catch (err) {
-    
-            console.log(err);
-            return res.status(500).json({ error: 'Something went wrong' });
+        if (!doc) {
+            return res.json({ error: 'No cats found' });
         }
+
+        return res.json({ name: doc.name, beds: doc.bedsOwned });
     }
     return res.status(400).json({ error: 'Name is required to perform a search' });
 
