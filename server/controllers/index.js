@@ -3,6 +3,7 @@ const models = require('../models');
 
 // get the Cat model
 const { Cat } = models;
+const { Dog } = models;
 
 // default fake data so that we have something to work with until we make a real Cat
 const defaultData = {
@@ -10,8 +11,15 @@ const defaultData = {
   bedsOwned: 0,
 };
 
+const defaultDogData = {
+    name: 'unknown',
+    breed: 'unknown',
+    age: 0,
+};
+
 // object for us to keep track of the last Cat we made and dynamically update it sometimes
 let lastAdded = new Cat(defaultData);
+let lastDogAdded = new Dog(defaultDogData);
 
 // Function to handle rendering the index page.
 const hostIndex = (req, res) => {
@@ -83,6 +91,19 @@ const hostPage3 = (req, res) => {
   res.render('page3');
 };
 
+const hostPage4 = (req, res) => {
+    try {
+        const docs = await Dog.find({}).lean().exec();
+
+        // Once we get back the docs array, we can send it to page1.
+        return res.render('page4', { dogs: docs });
+        } catch (err) {
+
+        console.log(err);
+        return res.status(500).json({ error: 'failed to find dogs' });
+        }
+};
+
 // Get name will return the name of the last added cat.
 const getName = (req, res) => res.json({ name: lastAdded.name });
 
@@ -147,6 +168,40 @@ const setName = async (req, res) => {
   }
 };
 
+const setDogName = async (req, res) => {
+   
+    if (!req.body.firstname || !req.body.breed || !req.body.age) {
+        // If they are missing data, send back an error.
+        return res.status(400).json({ error: 'firstname, breed and age are all required' });
+    }
+
+  
+    const dogData = {
+        name: `${req.body.firstname}`,
+        breed: `${req.body.breed}`,
+        age: req.body.age,
+    };
+
+    const newDog = new Dog(dogData);
+
+    try {
+     
+        await newDog.save();
+
+        lastDogAdded = newDog;
+        return res.json({
+        name: lastDogAdded.name,
+        breed: lastDogAdded.breed,
+        age: lastDogAdded.age
+        });
+
+    } catch (err) {
+      
+        console.log(err);
+        return res.status(500).json({ error: 'failed to create dog' });
+    }
+};
+
 // Function to handle searching a cat by name.
 const searchName = async (req, res) => {
   /* When the user makes a POST request, bodyParser populates req.body with the parameters
@@ -191,6 +246,41 @@ const searchName = async (req, res) => {
   }
 };
 
+const increaseByName = async (req, res) => {
+
+    if (!req.body.name) {
+      return res.status(400).json({ error: 'Name is required to perform a search' });
+    }
+    try {
+        const doc = await Dog.findOne({ name: req.body.name }).exec();
+
+        if (!doc) {
+        return res.json({ error: 'No dogs found' });
+        }
+        //if the dog is found, increase its age
+        doc.age++;
+        const savePromise = doc.save();
+
+        // If we successfully save/update them in the database, send back the dog's info.
+        
+        savePromise.then(() => res.json({
+            name: doc.name,
+            breed: doc.breed,
+            age: doc.age
+        }));
+        /*
+        savePromise.catch((err) => {
+            console.log(err);
+            return res.status(500).json({ error: 'Something went wrong' });
+        });
+        */
+    } catch (err) {
+        // If there is an error, log it and send the user an error message.
+        console.log(err);
+        return res.status(500).json({ error: 'Something went wrong' });
+    }
+    //return res.json({ name: doc.name, breed: doc.breed, age: doc.age });
+};
 /* A function for updating the last cat added to the database.
    Usually database updates would be a more involved process, involving finding
    the right element in the database based on query, modifying it, and updating
@@ -243,7 +333,9 @@ module.exports = {
   page3: hostPage3,
   getName,
   setName,
+  setDogName,
   updateLast,
   searchName,
+  increaseByName,
   notFound,
 };
